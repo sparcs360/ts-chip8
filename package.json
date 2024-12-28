@@ -1,0 +1,32 @@
+{
+  "name": "chip8",
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "author": "Lee Newfeld",
+  "scripts": {
+    "chip8:base": "tsx",
+    "chip8:debug": "yarn run chip8:base --inspect ./src/chip8.ts",
+    "chip8": "yarn run chip8:base ./src/chip8.ts",
+    "test": "jest",
+    "build": "scripts/build.sh"
+  },
+  "devDependencies": {
+    "@kmamal/sdl": "^0.10.7",
+    "canvas": "^3.0.0",
+    "jest": "^29.7.0",
+    "pkgroll": "^2.6.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "exports": {
+    "require": {
+      "types": "./dist/chip8.d.cts",
+      "default": "./dist/chip8.cjs"
+    },
+    "import": {
+      "types": "./dist/chip8.d.mts",
+      "default": "./dist/chip8.mjs"
+    }
+  },
+  "bin": "./dist/chip8.js"
+}
