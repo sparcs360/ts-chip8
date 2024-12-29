@@ -265,7 +265,7 @@ export class Cpu {
         for (let i = 0; i < c; i++) {
           pixels[i] = this._mem.get(this._i + i);
         }
-        this._disp.draw(this._v[x], this._v[y], pixels);
+        this._v[0xf] = this._disp.draw(this._v[x], this._v[y], pixels) ? 1 : 0;
         return;
       }
       case 0xf: {
