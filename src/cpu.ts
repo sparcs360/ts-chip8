@@ -61,7 +61,7 @@ export class Cpu {
     }, 1000.0 / 60.0);
 
     const doTick = async () => {
-      for (let i = 0; i < 17; i++) {
+      for (let i = 0; i < 3; i++) {
         const isRunning = await self._tick();
         if (!isRunning) {
           return;

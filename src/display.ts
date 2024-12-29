@@ -36,6 +36,7 @@ export class Display {
     this._window.on("close", (event: sdl.Events.Window.Close) =>
       process.exit(0)
     );
+    this._window.setVsync(true);
 
     this._canvas = Canvas.createCanvas(this._width, this._height);
     this._ctx = this._canvas.getContext("2d");
@@ -63,8 +64,8 @@ export class Display {
   public draw(x: number, y: number, pixels: number[]): boolean {
     // console.log({ x, y, pixels }, "draw");
 
-    let dx = x;
-    let dy = y;
+    let dx = x % WIDTH;
+    let dy = y % HEIGHT;
     let fbIndex = dy * WIDTH + dx;
     let mask: number;
     let collide: boolean = false;
@@ -83,11 +84,11 @@ export class Display {
           this._xor(dx, dy);
         }
         mask = mask >> 1;
-        dx++;
+        dx = (dx + 1) % WIDTH;
         fbIndex++;
       }
-      dx = x;
-      dy++;
+      dx = x % WIDTH;
+      dy = (dy + 1) % HEIGHT;
       fbIndex += WIDTH - 8;
     }
 
