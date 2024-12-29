@@ -18,18 +18,25 @@ export class Display {
   private _canvas: Canvas.Canvas;
   private _ctx: Canvas.CanvasRenderingContext2D;
 
+  private _DEBUG: boolean;
+
   constructor() {
     this._width = WIDTH * PIXEL_WIDTH;
     this._height = HEIGHT * PIXEL_HEIGHT;
     this._fb = new Uint8Array(WIDTH * HEIGHT);
     this._textDecoder = new TextDecoder();
 
+    this._DEBUG = false;
+
     this._window = sdl.video.createWindow({
       title: "CHIP8",
       width: this._width,
       height: this._height,
     });
-    // this._window.on("*", console.log);
+    this._window.on("close", (event: sdl.Events.Window.Close) =>
+      process.exit(0)
+    );
+
     this._canvas = Canvas.createCanvas(this._width, this._height);
     this._ctx = this._canvas.getContext("2d");
     this._ctx.globalCompositeOperation = "xor";
@@ -109,7 +116,7 @@ export class Display {
       buffer
     );
 
-    this._dump();
+    if (this._DEBUG) this._dump();
   }
 
   private _dump(): void {
@@ -122,5 +129,9 @@ export class Display {
       );
       i += WIDTH;
     }
+  }
+
+  public setDebug(debug: boolean = true): void {
+    this._DEBUG = debug;
   }
 }

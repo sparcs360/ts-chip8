@@ -42,8 +42,12 @@ const font = [
 export class Memory {
   private _mem: Uint8Array;
 
+  private _DEBUG: boolean;
+
   public constructor() {
     this._mem = new Uint8Array(MEM_MAX);
+
+    this._DEBUG = false;
 
     this._mem.set(font, 0x050);
   }
@@ -81,5 +85,9 @@ export class Memory {
     }
 
     this._mem.set(bytes, address);
+  }
+
+  public setDebug(debug: boolean = true): void {
+    this._DEBUG = debug;
   }
 }

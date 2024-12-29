@@ -1,4 +1,5 @@
 import { Display } from "./display";
+import { Keyboard } from "./keyboard";
 import { MEM_MAX, Memory } from "./memory";
 
 type Work = {
@@ -17,55 +18,81 @@ export class Cpu {
   private _stack: number[];
   private _v: number[];
   private _i: number;
-  private _del: number;
+  private _dt: number;
   private _snd: number;
 
   private _mem: Memory;
   private _disp: Display;
+  private _kb: Keyboard;
 
-  public constructor(memory: Memory, display: Display) {
+  private _DEBUG: boolean;
+
+  public constructor(memory: Memory, display: Display, keyboard: Keyboard) {
     this._pc = 0;
     this._sp = -1;
     this._stack = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     this._v = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     this._i = 0;
-    this._del = 0;
+    this._dt = 0;
     this._snd = 0;
 
     this._mem = memory;
     this._disp = display;
+    this._kb = keyboard;
+
+    this._DEBUG = false;
   }
 
-  public run(address: number): void {
+  public async run(address: number, cycles: number = Infinity): Promise<void> {
     if (address < 0 || address > MEM_MAX - 2) {
       throw new Error(`Attempt to execute at address ${address}`);
     }
 
     this._pc = address;
-  }
+    if (this._DEBUG) this._dump();
 
-  public tick(cycles: number = Infinity): void {
+    const self = this;
     let c = 0;
-    this._dump();
 
-    for (let i = 0; i < cycles; i++) {
-      try {
-        const pc = this._pc;
-        this._execute(this._fetch());
-        if (this._pc === pc) {
-          console.log(`HALT at $${this._h4(pc)}`);
+    setInterval(() => {
+      if (this._dt) {
+        this._dt--;
+      }
+    }, 1000.0 / 60.0);
+
+    const doTick = async () => {
+      for (let i = 0; i < 17; i++) {
+        const isRunning = await self._tick();
+        if (!isRunning) {
           return;
         }
         c++;
-        this._dump();
-        console.log();
-      } catch (error) {
-        console.error(error);
-        console.log(`failed after ${c} ticks`);
-        this._dump();
-        return;
       }
+      if (c < cycles) {
+        setTimeout(doTick, 1000.0 / 500.0);
+      }
+    };
+
+    setTimeout(doTick, 1000.0 / 500.0);
+  }
+
+  private async _tick(): Promise<boolean> {
+    try {
+      const pc = this._pc;
+      await this._execute(this._fetch());
+      if (this._pc === pc) {
+        console.log(`HALT at $${this._h4(pc)}`);
+        return false;
+      }
+      if (this._DEBUG) this._dump();
+    } catch (error) {
+      console.error(error);
+      console.log(`failed after ${this._tick} ticks`);
+      this._dump();
+      return false;
     }
+
+    return true;
   }
 
   private _fetch(): Work {
@@ -94,7 +121,7 @@ export class Cpu {
     return { pc, op, b2, n1, n2, n3, n4 };
   }
 
-  private _execute(w: Work): void {
+  private async _execute(w: Work): Promise<void> {
     switch (w.n1) {
       case 0x0: {
         switch (w.op) {
@@ -106,7 +133,7 @@ export class Cpu {
           case 0x00ee: {
             const pc = this._stack[this._sp--];
             this._log(w, `RET // to ${this._h4(pc)}`);
-            this.run(pc);
+            this._pc = pc;
             return;
           }
           default: {
@@ -119,14 +146,14 @@ export class Cpu {
       case 0x1: {
         const a = (w.n2 << 8) + (w.n3 << 4) + w.n4;
         this._log(w, `JMP $${this._h4(a)}`);
-        this.run(a);
+        this._pc = a;
         return;
       }
       case 0x2: {
         const a = (w.n2 << 8) + (w.n3 << 4) + w.n4;
         this._log(w, `CALL $${this._h4(a)}`);
         this._stack[++this._sp] = this._pc;
-        this.run(a);
+        this._pc = a;
         return;
       }
       case 0x3: {
@@ -265,8 +292,55 @@ export class Cpu {
         this._v[0xf] = this._disp.draw(this._v[x], this._v[y], pixels) ? 1 : 0;
         return;
       }
+      case 0xe: {
+        const r = w.n2;
+        const v = this._v[r];
+
+        switch (w.b2) {
+          case 0x9e: {
+            if (this._kb.isDown(v)) {
+              this._pc += 2;
+            }
+            return;
+          }
+          case 0xa1: {
+            if (this._kb.isUp(v)) {
+              this._pc += 2;
+            }
+            return;
+          }
+          default: {
+            throw new Error(
+              `Bad opcode (${this._h4(w.op)}) at ${this._h4(this._pc - 2)}`
+            );
+          }
+        }
+      }
       case 0xf: {
         switch (w.b2) {
+          case 0x07: {
+            const r = w.n2;
+            const v = this._v[r];
+
+            this._log(w, `LD V${this._h1(r)}, DT // #$${this._h2(v)}`);
+            this._v[r] = this._dt;
+            return;
+          }
+          case 0x0a: {
+            const r = w.n2;
+
+            this._log(w, `LD V${this._h1(r)}, K`);
+            this._v[r] = await this._kb.getKey();
+            return;
+          }
+          case 0x15: {
+            const r = w.n2;
+            const v = this._v[r];
+
+            this._log(w, `LD DT, V${this._h1(r)} // #$${this._h2(v)}`);
+            this._dt = v;
+            return;
+          }
           case 0x1e: {
             const r = w.n2;
             const v = this._v[r];
@@ -323,19 +397,25 @@ export class Cpu {
   }
 
   private _dump(): void {
-    console.log(`PC     ${this._h4(this._pc)}`);
-    console.log(`SP     ${this._h2(this._sp)}`);
+    console.log(
+      "======================================================================================"
+    );
+    console.log(`PC     ${this._h4(this._pc)}  SP     ${this._h2(this._sp)}`);
+    console.log(`I      ${this._h4(this._i)}  DT     ${this._h2(this._dt)}`);
     console.log(
       "          0    1    2    3    4    5    6    7    8    9    a    b    c    d    e    f"
     );
     console.log(`STACK  ${this._stack.map(this._h4).join(" ")}`);
     console.log("        0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f");
     console.log(`V      ${this._v.map(this._h2).join(" ")}`);
-    console.log(`I      ${this._h4(this._i)}`);
+    console.log(
+      "======================================================================================"
+    );
   }
 
   private _log(work: Work, assembly: string) {
-    console.log(`$${this._h4(work.pc)} $${this._h4(work.op)}: ${assembly}`);
+    if (this._DEBUG)
+      console.log(`$${this._h4(work.pc)} $${this._h4(work.op)}: ${assembly}`);
   }
 
   private _h1(v: number): string {
@@ -346,5 +426,9 @@ export class Cpu {
   }
   private _h4(v: number): string {
     return v.toString(16).padStart(4, "0");
+  }
+
+  public setDebug(debug: boolean = true): void {
+    this._DEBUG = debug;
   }
 }
