@@ -7,6 +7,6 @@ const display = new Display();
 
 const cpu = new Cpu(memory, display);
 
-memory.load("./.roms/IBM Logo.ch8", 0x200);
+memory.load("./.roms/test_opcode.ch8", 0x200);
 cpu.run(0x200);
-cpu.tick(21);
+cpu.tick();

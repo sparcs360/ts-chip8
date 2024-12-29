@@ -4,6 +4,7 @@ import { MEM_MAX, Memory } from "./memory";
 type Work = {
   pc: number;
   op: number;
+  b2: number;
   n1: number;
   n2: number;
   n3: number;
@@ -24,7 +25,7 @@ export class Cpu {
 
   public constructor(memory: Memory, display: Display) {
     this._pc = 0;
-    this._sp = 0;
+    this._sp = -1;
     this._stack = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     this._v = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     this._i = 0;
@@ -44,8 +45,26 @@ export class Cpu {
   }
 
   public tick(cycles: number = Infinity): void {
+    let c = 0;
+    this._dump();
+
     for (let i = 0; i < cycles; i++) {
-      this._execute(this._fetch());
+      try {
+        const pc = this._pc;
+        this._execute(this._fetch());
+        if (this._pc === pc) {
+          console.log(`HALT at $${this._h4(pc)}`);
+          return;
+        }
+        c++;
+        this._dump();
+        console.log();
+      } catch (error) {
+        console.error(error);
+        console.log(`failed after ${c} ticks`);
+        this._dump();
+        return;
+      }
     }
   }
 
@@ -61,6 +80,7 @@ export class Cpu {
   }
 
   private _decode(pc: number, op: number): Work {
+    const b2: number = op & 0xff;
     const n1: number = (op & 0xf000) >> 12;
     const n2: number = (op & 0xf00) >> 8;
     const n3: number = (op & 0xf0) >> 4;
@@ -71,7 +91,7 @@ export class Cpu {
     //   )}, n4=${n4.toString(16)}`
     // );
 
-    return { pc, op, n1, n2, n3, n4 };
+    return { pc, op, b2, n1, n2, n3, n4 };
   }
 
   private _execute(w: Work): void {
@@ -83,46 +103,155 @@ export class Cpu {
             this._disp.clear();
             return;
           }
+          case 0x00ee: {
+            const pc = this._stack[this._sp--];
+            this._log(w, `RET // to ${this._h4(pc)}`);
+            this.run(pc);
+            return;
+          }
           default: {
             throw new Error(
-              `Bad opcode (${w.op.toString(16).padStart(4, "0")}) at ${(
-                this._pc - 2
-              )
-                .toString(16)
-                .padStart(4, "0")}`
+              `Bad opcode (${this._h4(w.op)}) at ${this._h4(this._pc - 2)}`
             );
           }
         }
       }
       case 0x1: {
         const a = (w.n2 << 8) + (w.n3 << 4) + w.n4;
-        this._log(w, `JMP $${a.toString(16).padStart(4, "0")}`);
+        this._log(w, `JMP $${this._h4(a)}`);
         this.run(a);
+        return;
+      }
+      case 0x2: {
+        const a = (w.n2 << 8) + (w.n3 << 4) + w.n4;
+        this._log(w, `CALL $${this._h4(a)}`);
+        this._stack[++this._sp] = this._pc;
+        this.run(a);
+        return;
+      }
+      case 0x3: {
+        const r = w.n2;
+        const v = (w.n3 << 4) + w.n4;
+        this._log(w, `SE V${this._h1(r)}, #${this._h4(v)}`);
+        if (this._v[r] === v) {
+          this._pc += 2;
+        }
+        return;
+      }
+      case 0x4: {
+        const r = w.n2;
+        const v = (w.n3 << 4) + w.n4;
+        this._log(w, `SNE V${this._h1(r)}, #${this._h4(v)}`);
+        if (this._v[r] !== v) {
+          this._pc += 2;
+        }
+        return;
+      }
+      case 0x5: {
+        const r1 = w.n2;
+        const r2 = w.n3;
+        this._log(w, `SE V${this._h1(r1)}, V${this._h1(r2)}`);
+        if (this._v[r1] === this._v[r2]) {
+          this._pc += 2;
+        }
         return;
       }
       case 0x6: {
         const r = w.n2;
         const v = (w.n3 << 4) + w.n4;
-        this._log(
-          w,
-          `LD V${r.toString(16)}, #${v.toString(16).padStart(4, "0")}`
-        );
+        this._log(w, `LD V${this._h1(r)}, #${this._h4(v)}`);
         this._v[r] = v;
         return;
       }
       case 0x7: {
         const r = w.n2;
         const v = (w.n3 << 4) + w.n4;
-        this._log(
-          w,
-          `ADD V${r.toString(16)}, #${v.toString(16).padStart(4, "0")}`
-        );
-        this._v[r] += v;
+        this._log(w, `ADD V${this._h1(r)}, #${this._h4(v)}`);
+        this._v[r] = (this._v[r] + v) & 0xff;
+        return;
+      }
+      case 0x8: {
+        switch (w.n4) {
+          case 0x0: {
+            const r1 = w.n2;
+            const r2 = w.n3;
+            this._log(w, `LD V${this._h1(r1)}, V${this._h1(r2)}`);
+            this._v[r1] = this._v[r2];
+            return;
+          }
+          case 0x1: {
+            const r1 = w.n2;
+            const r2 = w.n3;
+            this._log(w, `OR V${this._h1(r1)}, V${this._h1(r2)}`);
+            this._v[r1] = this._v[r1] | this._v[r2];
+            return;
+          }
+          case 0x2: {
+            const r1 = w.n2;
+            const r2 = w.n3;
+            this._log(w, `AND V${this._h1(r1)}, V${this._h1(r2)}`);
+            this._v[r1] = this._v[r1] & this._v[r2];
+            return;
+          }
+          case 0x3: {
+            const r1 = w.n2;
+            const r2 = w.n3;
+            this._log(w, `XOR V${this._h1(r1)}, V${this._h1(r2)}`);
+            this._v[r1] = this._v[r1] ^ this._v[r2];
+            return;
+          }
+          case 0x4: {
+            const r1 = w.n2;
+            const r2 = w.n3;
+            this._log(w, `ADC V${this._h1(r1)}, V${this._h1(r2)}`);
+            const sum = (this._v[r1] + this._v[r2]) & 0x1ff;
+            this._v[r1] = sum & 0xff;
+            this._v[0xf] = sum >> 8;
+            return;
+          }
+          case 0x5: {
+            const r1 = w.n2;
+            const r2 = w.n3;
+            this._log(w, `SBC V${this._h1(r1)}, V${this._h1(r2)}`);
+            this._v[0xf] = this._v[r1] > this._v[r2] ? 1 : 0;
+            this._v[r1] = (this._v[r1] - this._v[r2]) & 0xff;
+            return;
+          }
+          case 0x6: {
+            const r1 = w.n2;
+            const r2 = w.n3;
+            this._log(w, `SHR V${this._h1(r1)}, V${this._h1(r2)}`);
+            this._v[0xf] = this._v[r1] & 0x1;
+            this._v[r1] = (this._v[r1] >> 1) & 0xff;
+            return;
+          }
+          case 0xe: {
+            const r1 = w.n2;
+            const r2 = w.n3;
+            this._log(w, `SHL V${this._h1(r1)}, V${this._h1(r2)}`);
+            this._v[0xf] = this._v[r1] & 0x80 ? 1 : 0;
+            this._v[r1] = (this._v[r1] << 1) & 0xff;
+            return;
+          }
+          default: {
+            throw new Error(
+              `Bad opcode (${this._h4(w.op)}) at ${this._h4(this._pc - 2)}`
+            );
+          }
+        }
+      }
+      case 0x9: {
+        const r1 = w.n2;
+        const r2 = w.n3;
+        this._log(w, `SNE V${this._h1(r1)}, V${this._h1(r2)}`);
+        if (this._v[r1] !== this._v[r2]) {
+          this._pc += 2;
+        }
         return;
       }
       case 0xa: {
         const a = (w.n2 << 8) + (w.n3 << 4) + w.n4;
-        this._log(w, `LD I, #${a.toString(16).padStart(4, "0")}`);
+        this._log(w, `LD I, #${this._h4(a)}`);
         this._i = a;
         return;
       }
@@ -130,10 +259,7 @@ export class Cpu {
         const x = w.n2;
         const y = w.n3;
         const c = w.n4;
-        this._log(
-          w,
-          `DRW (V${x.toString(16)},V${y.toString(16)}), #${c.toString(16)}`
-        );
+        this._log(w, `DRW (V${this._h1(x)},V${this._h1(y)}), #${this._h1(c)}`);
 
         const pixels: number[] = [];
         for (let i = 0; i < c; i++) {
@@ -141,6 +267,40 @@ export class Cpu {
         }
         this._disp.draw(this._v[x], this._v[y], pixels);
         return;
+      }
+      case 0xf: {
+        switch (w.b2) {
+          case 0x33: {
+            const r = w.n2;
+            const v = this._v[r];
+            this._log(w, `LD B, V${this._h1(r)} // ${this._h2}`);
+            this._mem.set(this._i, Math.floor(v / 100));
+            this._mem.set(this._i + 1, Math.floor((v % 100) / 10));
+            this._mem.set(this._i + 2, v % 10);
+            return;
+          }
+          case 0x55: {
+            const c = w.n2;
+            this._log(w, `LD [I], #${this._h1(c)}`);
+            for (let i = 0; i <= c; i++) {
+              this._mem.set(this._i++, this._v[i]);
+            }
+            return;
+          }
+          case 0x65: {
+            const c = w.n2;
+            this._log(w, `LD #${this._h1(c)}, [I]`);
+            for (let i = 0; i <= c; i++) {
+              this._v[i] = this._mem.get(this._i++);
+            }
+            return;
+          }
+          default: {
+            throw new Error(
+              `Bad opcode (${this._h4(w.op)}) at ${this._h4(this._pc - 2)}`
+            );
+          }
+        }
       }
       default: {
         throw new Error(
@@ -154,11 +314,29 @@ export class Cpu {
     }
   }
 
-  private _log(work: Work, assembly: string) {
+  private _dump(): void {
+    console.log(`PC     ${this._h4(this._pc)}`);
+    console.log(`SP     ${this._h2(this._sp)}`);
     console.log(
-      `$${work.pc.toString(16).padStart(4, "0")} $${work.op
-        .toString(16)
-        .padStart(4, "0")}: ${assembly}`
+      "          0    1    2    3    4    5    6    7    8    9    a    b    c    d    e    f"
     );
+    console.log(`STACK  ${this._stack.map(this._h4).join(" ")}`);
+    console.log("        0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f");
+    console.log(`V      ${this._v.map(this._h2).join(" ")}`);
+    console.log(`I      ${this._h4(this._i)}`);
+  }
+
+  private _log(work: Work, assembly: string) {
+    console.log(`$${this._h4(work.pc)} $${this._h4(work.op)}: ${assembly}`);
+  }
+
+  private _h1(v: number): string {
+    return v.toString(16);
+  }
+  private _h2(v: number): string {
+    return v.toString(16).padStart(2, "0");
+  }
+  private _h4(v: number): string {
+    return v.toString(16).padStart(4, "0");
   }
 }
