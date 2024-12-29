@@ -18,6 +18,6 @@ const cpu = new Cpu(memory, display);
 // cpu.run(0x200);
 // cpu.tick();
 
-memory.load("./.roms/chip8-test-suite/3-corax+.ch8", 0x200);
+memory.load("./.roms/chip8-test-suite/4-flags.ch8", 0x200);
 cpu.run(0x200);
 cpu.tick();

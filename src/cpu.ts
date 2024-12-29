@@ -172,58 +172,60 @@ export class Cpu {
       }
       case 0x8: {
         const rx = w.n2;
+        const vx = this._v[rx];
         const ry = w.n3;
+        const vy = this._v[ry];
 
         switch (w.n4) {
           case 0x0: {
             this._log(w, `LD V${this._h1(rx)}, V${this._h1(ry)}`);
-            this._v[rx] = this._v[ry];
+            this._v[rx] = vy;
             return;
           }
           case 0x1: {
             this._log(w, `OR V${this._h1(rx)}, V${this._h1(ry)}`);
-            this._v[rx] = this._v[rx] | this._v[ry];
+            this._v[rx] = vx | vy;
             return;
           }
           case 0x2: {
             this._log(w, `AND V${this._h1(rx)}, V${this._h1(ry)}`);
-            this._v[rx] = this._v[rx] & this._v[ry];
+            this._v[rx] = vx & vy;
             return;
           }
           case 0x3: {
             this._log(w, `XOR V${this._h1(rx)}, V${this._h1(ry)}`);
-            this._v[rx] = this._v[rx] ^ this._v[ry];
+            this._v[rx] = vx ^ vy;
             return;
           }
           case 0x4: {
             this._log(w, `ADC V${this._h1(rx)}, V${this._h1(ry)}`);
-            const sum = (this._v[rx] + this._v[ry]) & 0x1ff;
+            const sum = (vx + vy) & 0x1ff;
             this._v[rx] = sum & 0xff;
             this._v[0xf] = sum >> 8;
             return;
           }
           case 0x5: {
             this._log(w, `SBC V${this._h1(rx)}, V${this._h1(ry)}`);
-            this._v[0xf] = this._v[rx] > this._v[ry] ? 1 : 0;
-            this._v[rx] = (this._v[rx] - this._v[ry]) & 0xff;
+            this._v[rx] = (vx - vy) & 0xff;
+            this._v[0xf] = vx >= vy ? 1 : 0;
             return;
           }
           case 0x6: {
             this._log(w, `SHR V${this._h1(rx)}, V${this._h1(ry)}`);
-            this._v[0xf] = this._v[rx] & 0x1;
-            this._v[rx] = (this._v[rx] >> 1) & 0xff;
+            this._v[rx] = (vx >> 1) & 0xff;
+            this._v[0xf] = vx & 0x1;
             return;
           }
           case 0x7: {
             this._log(w, `SUBN V${this._h1(rx)}, V${this._h1(ry)}`);
-            this._v[0xf] = this._v[ry] > this._v[rx] ? 1 : 0;
-            this._v[rx] = (this._v[ry] - this._v[rx]) & 0xff;
+            this._v[rx] = (vy - vx) & 0xff;
+            this._v[0xf] = vy >= vx ? 1 : 0;
             return;
           }
           case 0xe: {
             this._log(w, `SHL V${this._h1(rx)}, V${this._h1(ry)}`);
-            this._v[0xf] = this._v[rx] & 0x80 ? 1 : 0;
-            this._v[rx] = (this._v[rx] << 1) & 0xff;
+            this._v[rx] = (vx << 1) & 0xff;
+            this._v[0xf] = vx & 0x80 ? 1 : 0;
             return;
           }
           default: {
