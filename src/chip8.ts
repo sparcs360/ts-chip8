@@ -31,6 +31,9 @@ cpu.setDebug(DEBUG);
   // memory.load("./.roms/chip8-test-suite/4-flags.ch8", 0x200);
   // await cpu.run(0x200);
 
-  memory.load("./.roms/chip8-test-suite/6-keypad.ch8", 0x200);
+  memory.load("./.roms/chip8-test-suite/5-quirks.ch8", 0x200);
   await cpu.run(0x200);
+
+  // memory.load("./.roms/chip8-test-suite/6-keypad.ch8", 0x200);
+  // await cpu.run(0x200);
 })();

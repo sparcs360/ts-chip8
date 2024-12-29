@@ -212,16 +212,19 @@ export class Cpu {
           case 0x1: {
             this._log(w, `OR V${this._h1(rx)}, V${this._h1(ry)}`);
             this._v[rx] = vx | vy;
+            this._v[0xf] = 0;
             return;
           }
           case 0x2: {
             this._log(w, `AND V${this._h1(rx)}, V${this._h1(ry)}`);
             this._v[rx] = vx & vy;
+            this._v[0xf] = 0;
             return;
           }
           case 0x3: {
             this._log(w, `XOR V${this._h1(rx)}, V${this._h1(ry)}`);
             this._v[rx] = vx ^ vy;
+            this._v[0xf] = 0;
             return;
           }
           case 0x4: {
@@ -239,8 +242,8 @@ export class Cpu {
           }
           case 0x6: {
             this._log(w, `SHR V${this._h1(rx)}, V${this._h1(ry)}`);
-            this._v[rx] = (vx >> 1) & 0xff;
-            this._v[0xf] = vx & 0x1;
+            this._v[rx] = (vy >> 1) & 0xff;
+            this._v[0xf] = vy & 0x1;
             return;
           }
           case 0x7: {
@@ -251,8 +254,8 @@ export class Cpu {
           }
           case 0xe: {
             this._log(w, `SHL V${this._h1(rx)}, V${this._h1(ry)}`);
-            this._v[rx] = (vx << 1) & 0xff;
-            this._v[0xf] = vx & 0x80 ? 1 : 0;
+            this._v[rx] = (vy << 1) & 0xff;
+            this._v[0xf] = vy & 0x80 ? 1 : 0;
             return;
           }
           default: {
@@ -276,6 +279,13 @@ export class Cpu {
         const a = (w.n2 << 8) + (w.n3 << 4) + w.n4;
         this._log(w, `LD I, #$${this._h4(a)}`);
         this._i = a;
+        return;
+      }
+      case 0xb: {
+        const a = (w.n2 << 8) + (w.n3 << 4) + w.n4;
+        const v = this._v[0];
+        this._log(w, `JP V0, #$${this._h4(a)} // #$${this._h4(a + v)}`);
+        this._pc = a + v;
         return;
       }
       case 0xd: {
