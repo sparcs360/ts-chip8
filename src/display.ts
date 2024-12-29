@@ -40,6 +40,7 @@ export class Display {
   public clear(): void {
     this._fb.set({ length: WIDTH * HEIGHT }, 0);
 
+    this._ctx.globalCompositeOperation = "clear";
     this._ctx.fillStyle = "black";
     this._ctx.fillRect(
       0,
@@ -49,6 +50,7 @@ export class Display {
     );
 
     this._redraw();
+    this._ctx.globalCompositeOperation = "xor";
   }
 
   public draw(x: number, y: number, pixels: number[]): boolean {
@@ -86,7 +88,7 @@ export class Display {
     return collide;
   }
 
-  private _xor(x: number, y: number): boolean {
+  private _xor(x: number, y: number): void {
     // console.log({ x, y }, "_xor");
 
     this._ctx.fillRect(
@@ -95,8 +97,6 @@ export class Display {
       PIXEL_WIDTH - 1,
       PIXEL_HEIGHT - 1
     );
-
-    return false;
   }
 
   private _redraw(): void {

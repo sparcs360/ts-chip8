@@ -132,7 +132,7 @@ export class Cpu {
       case 0x3: {
         const r = w.n2;
         const v = (w.n3 << 4) + w.n4;
-        this._log(w, `SE V${this._h1(r)}, #${this._h4(v)}`);
+        this._log(w, `SE V${this._h1(r)}, #$${this._h2(v)}`);
         if (this._v[r] === v) {
           this._pc += 2;
         }
@@ -141,7 +141,7 @@ export class Cpu {
       case 0x4: {
         const r = w.n2;
         const v = (w.n3 << 4) + w.n4;
-        this._log(w, `SNE V${this._h1(r)}, #${this._h4(v)}`);
+        this._log(w, `SNE V${this._h1(r)}, #$${this._h2(v)}`);
         if (this._v[r] !== v) {
           this._pc += 2;
         }
@@ -159,78 +159,71 @@ export class Cpu {
       case 0x6: {
         const r = w.n2;
         const v = (w.n3 << 4) + w.n4;
-        this._log(w, `LD V${this._h1(r)}, #${this._h4(v)}`);
+        this._log(w, `LD V${this._h1(r)}, #$${this._h2(v)}`);
         this._v[r] = v;
         return;
       }
       case 0x7: {
         const r = w.n2;
         const v = (w.n3 << 4) + w.n4;
-        this._log(w, `ADD V${this._h1(r)}, #${this._h4(v)}`);
+        this._log(w, `ADD V${this._h1(r)}, #$${this._h2(v)}`);
         this._v[r] = (this._v[r] + v) & 0xff;
         return;
       }
       case 0x8: {
+        const rx = w.n2;
+        const ry = w.n3;
+
         switch (w.n4) {
           case 0x0: {
-            const r1 = w.n2;
-            const r2 = w.n3;
-            this._log(w, `LD V${this._h1(r1)}, V${this._h1(r2)}`);
-            this._v[r1] = this._v[r2];
+            this._log(w, `LD V${this._h1(rx)}, V${this._h1(ry)}`);
+            this._v[rx] = this._v[ry];
             return;
           }
           case 0x1: {
-            const r1 = w.n2;
-            const r2 = w.n3;
-            this._log(w, `OR V${this._h1(r1)}, V${this._h1(r2)}`);
-            this._v[r1] = this._v[r1] | this._v[r2];
+            this._log(w, `OR V${this._h1(rx)}, V${this._h1(ry)}`);
+            this._v[rx] = this._v[rx] | this._v[ry];
             return;
           }
           case 0x2: {
-            const r1 = w.n2;
-            const r2 = w.n3;
-            this._log(w, `AND V${this._h1(r1)}, V${this._h1(r2)}`);
-            this._v[r1] = this._v[r1] & this._v[r2];
+            this._log(w, `AND V${this._h1(rx)}, V${this._h1(ry)}`);
+            this._v[rx] = this._v[rx] & this._v[ry];
             return;
           }
           case 0x3: {
-            const r1 = w.n2;
-            const r2 = w.n3;
-            this._log(w, `XOR V${this._h1(r1)}, V${this._h1(r2)}`);
-            this._v[r1] = this._v[r1] ^ this._v[r2];
+            this._log(w, `XOR V${this._h1(rx)}, V${this._h1(ry)}`);
+            this._v[rx] = this._v[rx] ^ this._v[ry];
             return;
           }
           case 0x4: {
-            const r1 = w.n2;
-            const r2 = w.n3;
-            this._log(w, `ADC V${this._h1(r1)}, V${this._h1(r2)}`);
-            const sum = (this._v[r1] + this._v[r2]) & 0x1ff;
-            this._v[r1] = sum & 0xff;
+            this._log(w, `ADC V${this._h1(rx)}, V${this._h1(ry)}`);
+            const sum = (this._v[rx] + this._v[ry]) & 0x1ff;
+            this._v[rx] = sum & 0xff;
             this._v[0xf] = sum >> 8;
             return;
           }
           case 0x5: {
-            const r1 = w.n2;
-            const r2 = w.n3;
-            this._log(w, `SBC V${this._h1(r1)}, V${this._h1(r2)}`);
-            this._v[0xf] = this._v[r1] > this._v[r2] ? 1 : 0;
-            this._v[r1] = (this._v[r1] - this._v[r2]) & 0xff;
+            this._log(w, `SBC V${this._h1(rx)}, V${this._h1(ry)}`);
+            this._v[0xf] = this._v[rx] > this._v[ry] ? 1 : 0;
+            this._v[rx] = (this._v[rx] - this._v[ry]) & 0xff;
             return;
           }
           case 0x6: {
-            const r1 = w.n2;
-            const r2 = w.n3;
-            this._log(w, `SHR V${this._h1(r1)}, V${this._h1(r2)}`);
-            this._v[0xf] = this._v[r1] & 0x1;
-            this._v[r1] = (this._v[r1] >> 1) & 0xff;
+            this._log(w, `SHR V${this._h1(rx)}, V${this._h1(ry)}`);
+            this._v[0xf] = this._v[rx] & 0x1;
+            this._v[rx] = (this._v[rx] >> 1) & 0xff;
+            return;
+          }
+          case 0x7: {
+            this._log(w, `SUBN V${this._h1(rx)}, V${this._h1(ry)}`);
+            this._v[0xf] = this._v[ry] > this._v[rx] ? 1 : 0;
+            this._v[rx] = (this._v[ry] - this._v[rx]) & 0xff;
             return;
           }
           case 0xe: {
-            const r1 = w.n2;
-            const r2 = w.n3;
-            this._log(w, `SHL V${this._h1(r1)}, V${this._h1(r2)}`);
-            this._v[0xf] = this._v[r1] & 0x80 ? 1 : 0;
-            this._v[r1] = (this._v[r1] << 1) & 0xff;
+            this._log(w, `SHL V${this._h1(rx)}, V${this._h1(ry)}`);
+            this._v[0xf] = this._v[rx] & 0x80 ? 1 : 0;
+            this._v[rx] = (this._v[rx] << 1) & 0xff;
             return;
           }
           default: {
@@ -241,17 +234,18 @@ export class Cpu {
         }
       }
       case 0x9: {
-        const r1 = w.n2;
-        const r2 = w.n3;
-        this._log(w, `SNE V${this._h1(r1)}, V${this._h1(r2)}`);
-        if (this._v[r1] !== this._v[r2]) {
+        const rx = w.n2;
+        const ry = w.n3;
+
+        this._log(w, `SNE V${this._h1(rx)}, V${this._h1(ry)}`);
+        if (this._v[rx] !== this._v[ry]) {
           this._pc += 2;
         }
         return;
       }
       case 0xa: {
         const a = (w.n2 << 8) + (w.n3 << 4) + w.n4;
-        this._log(w, `LD I, #${this._h4(a)}`);
+        this._log(w, `LD I, #$${this._h4(a)}`);
         this._i = a;
         return;
       }
@@ -259,6 +253,7 @@ export class Cpu {
         const x = w.n2;
         const y = w.n3;
         const c = w.n4;
+
         this._log(w, `DRW (V${this._h1(x)},V${this._h1(y)}), #${this._h1(c)}`);
 
         const pixels: number[] = [];
@@ -270,10 +265,19 @@ export class Cpu {
       }
       case 0xf: {
         switch (w.b2) {
+          case 0x1e: {
+            const r = w.n2;
+            const v = this._v[r];
+
+            this._log(w, `ADD I, V${this._h1(r)} // #$${this._h2(v)}`);
+            this._i += v;
+            return;
+          }
           case 0x33: {
             const r = w.n2;
             const v = this._v[r];
-            this._log(w, `LD B, V${this._h1(r)} // ${this._h2}`);
+
+            this._log(w, `LD B, V${this._h1(r)} // #$${this._h2(v)}`);
             this._mem.set(this._i, Math.floor(v / 100));
             this._mem.set(this._i + 1, Math.floor((v % 100) / 10));
             this._mem.set(this._i + 2, v % 10);
@@ -281,6 +285,7 @@ export class Cpu {
           }
           case 0x55: {
             const c = w.n2;
+
             this._log(w, `LD [I], #${this._h1(c)}`);
             for (let i = 0; i <= c; i++) {
               this._mem.set(this._i++, this._v[i]);
@@ -289,6 +294,7 @@ export class Cpu {
           }
           case 0x65: {
             const c = w.n2;
+
             this._log(w, `LD #${this._h1(c)}, [I]`);
             for (let i = 0; i <= c; i++) {
               this._v[i] = this._mem.get(this._i++);
