@@ -77,7 +77,9 @@ export class Memory {
     }
 
     const bytes = fs.readFileSync(filename, { encoding: null });
-    console.log(bytes.toString("hex"));
+    if (this._DEBUG) {
+      console.log(bytes.toString("hex"));
+    }
     if (address + bytes.length > MEM_MAX) {
       throw new Error(
         `Attempt to load bytes past available RAM (start=${address}, len=${bytes.length})`
