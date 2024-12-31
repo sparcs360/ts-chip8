@@ -1,23 +1,11 @@
 import sdl from "@kmamal/sdl";
 
-const SCANCODES: number[] = [
-  sdl.keyboard.getScancode("0")!,
-  sdl.keyboard.getScancode("1")!,
-  sdl.keyboard.getScancode("2")!,
-  sdl.keyboard.getScancode("3")!,
-  sdl.keyboard.getScancode("4")!,
-  sdl.keyboard.getScancode("5")!,
-  sdl.keyboard.getScancode("6")!,
-  sdl.keyboard.getScancode("7")!,
-  sdl.keyboard.getScancode("8")!,
-  sdl.keyboard.getScancode("9")!,
-  sdl.keyboard.getScancode("a")!,
-  sdl.keyboard.getScancode("b")!,
-  sdl.keyboard.getScancode("c")!,
-  sdl.keyboard.getScancode("d")!,
-  sdl.keyboard.getScancode("e")!,
-  sdl.keyboard.getScancode("f")!,
-];
+const LAYOUT_RAW = "0123 4567 89ab cdef";
+const LAYOUT_QWERTY = "1234 qwer asdf zxcv";
+
+const SCANCODES = LAYOUT_QWERTY.split("")
+  .filter((c) => c !== " ")
+  .map((key) => sdl.keyboard.getScancode(key)!);
 
 export class Keyboard {
   private _DEBUG: boolean;
