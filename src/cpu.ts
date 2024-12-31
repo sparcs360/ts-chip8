@@ -1,3 +1,4 @@
+import { Beeper } from "./beeper";
 import { Display } from "./display";
 import { Keyboard } from "./keyboard";
 import { MEM_MAX, Memory } from "./memory";
@@ -24,10 +25,16 @@ export class Cpu {
   private _mem: Memory;
   private _disp: Display;
   private _kb: Keyboard;
+  private _beeper: Beeper;
 
   private _DEBUG: boolean;
 
-  public constructor(memory: Memory, display: Display, keyboard: Keyboard) {
+  public constructor(
+    memory: Memory,
+    display: Display,
+    keyboard: Keyboard,
+    beeper: Beeper
+  ) {
     this._pc = 0;
     this._sp = -1;
     this._stack = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -39,6 +46,7 @@ export class Cpu {
     this._mem = memory;
     this._disp = display;
     this._kb = keyboard;
+    this._beeper = beeper;
 
     this._DEBUG = false;
   }
@@ -57,6 +65,11 @@ export class Cpu {
     setInterval(() => {
       if (this._dt) {
         this._dt--;
+      }
+      if (this._snd) {
+        if (!--this._snd) {
+          this._beeper.off();
+        }
       }
     }, 1000.0 / 60.0);
 
@@ -351,6 +364,19 @@ export class Cpu {
             this._dt = v;
             return;
           }
+          case 0x18: {
+            const r = w.n2;
+            const v = this._v[r];
+
+            this._log(w, `LD ST, V${this._h1(r)} // #$${this._h2(v)}`);
+            this._snd = v;
+            if (v) {
+              this._beeper.on();
+            } else {
+              this._beeper.off();
+            }
+            return;
+          }
           case 0x1e: {
             const r = w.n2;
             const v = this._v[r];
@@ -411,7 +437,8 @@ export class Cpu {
       "======================================================================================"
     );
     console.log(`PC     ${this._h4(this._pc)}  SP     ${this._h2(this._sp)}`);
-    console.log(`I      ${this._h4(this._i)}  DT     ${this._h2(this._dt)}`);
+    console.log(`I      ${this._h4(this._i)}`);
+    console.log(`DT     ${this._h2(this._dt)}  ST     ${this._h2(this._snd)}`);
     console.log(
       "          0    1    2    3    4    5    6    7    8    9    a    b    c    d    e    f"
     );
