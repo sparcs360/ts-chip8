@@ -47,6 +47,12 @@ cpu.setDebug(DEBUG_CPU);
   // memory.load("./.roms/chip8-test-suite/7-beep.ch8", 0x200);
   // await cpu.run(0x200);
 
-  memory.load("./.roms/Lunar Lander (Udo Pernisz, 1979).ch8", 0x200);
+  // memory.load("./.roms/Lunar Lander (Udo Pernisz, 1979).ch8", 0x200);
+  // await cpu.run(0x200);
+
+  // memory.load("./.roms/Soccer.ch8", 0x200);
+  // await cpu.run(0x200);
+
+  memory.load("./.roms/Tetris [Fran Dachille, 1991].ch8", 0x200);
   await cpu.run(0x200);
 })();
