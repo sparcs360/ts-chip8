@@ -1,7 +1,7 @@
 import { Beeper } from "./beeper";
 import { Display } from "./display";
 import { Keyboard } from "./keyboard";
-import { MEM_MAX, Memory } from "./memory";
+import { MEM_FONT, MEM_MAX, Memory } from "./memory";
 
 type Work = {
   pc: number;
@@ -301,6 +301,14 @@ export class Cpu {
         this._pc = a + v;
         return;
       }
+      case 0xc: {
+        const r = w.n2;
+        const mask = w.b2;
+        const v = Math.floor(Math.random() * 0xff) & mask;
+        this._log(w, `RND V${this._h1(r)}, mask // #$${this._h2(v)}`);
+        this._v[r] = v;
+        return;
+      }
       case 0xd: {
         const x = w.n2;
         const y = w.n3;
@@ -383,6 +391,14 @@ export class Cpu {
 
             this._log(w, `ADD I, V${this._h1(r)} // #$${this._h2(v)}`);
             this._i += v;
+            return;
+          }
+          case 0x29: {
+            const r = w.n2;
+            const v = this._v[r];
+
+            this._log(w, `LD F, V${this._h1(r)} // #$${this._h2(v)}`);
+            this._i = MEM_FONT + v * 5;
             return;
           }
           case 0x33: {

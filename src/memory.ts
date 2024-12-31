@@ -1,6 +1,7 @@
 import * as fs from "fs";
 
 export const MEM_MIN = 0x0;
+export const MEM_FONT = 0x50;
 export const MEM_MAX = 0xfff;
 
 const font_0: number[] = [0xf0, 0x90, 0x90, 0x90, 0xf0];
@@ -49,7 +50,7 @@ export class Memory {
 
     this._DEBUG = false;
 
-    this._mem.set(font, 0x050);
+    this._mem.set(font, MEM_FONT);
   }
 
   public get(address: number): number {

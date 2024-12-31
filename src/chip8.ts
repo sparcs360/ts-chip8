@@ -8,7 +8,7 @@ const DEBUG_CPU: boolean = false;
 const DEBUG_MEMORY: boolean = false;
 const DEBUG_DISPLAY: boolean = false;
 const DEBUG_KEYBOARD: boolean = false;
-const DEBUG_BEEPER: boolean = true;
+const DEBUG_BEEPER: boolean = false;
 
 const memory = new Memory();
 memory.setDebug(DEBUG_MEMORY);
@@ -44,6 +44,9 @@ cpu.setDebug(DEBUG_CPU);
   // memory.load("./.roms/chip8-test-suite/6-keypad.ch8", 0x200);
   // await cpu.run(0x200);
 
-  memory.load("./.roms/chip8-test-suite/7-beep.ch8", 0x200);
+  // memory.load("./.roms/chip8-test-suite/7-beep.ch8", 0x200);
+  // await cpu.run(0x200);
+
+  memory.load("./.roms/Lunar Lander (Udo Pernisz, 1979).ch8", 0x200);
   await cpu.run(0x200);
 })();
