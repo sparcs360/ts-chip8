@@ -27,6 +27,8 @@ export class Cpu {
   private _kb: Keyboard;
   private _beeper: Beeper;
 
+  private _ticks: number;
+
   private _DEBUG: boolean;
 
   public constructor(
@@ -48,60 +50,50 @@ export class Cpu {
     this._kb = keyboard;
     this._beeper = beeper;
 
+    this._ticks = 0;
+
     this._DEBUG = false;
   }
 
-  public async run(address: number, cycles: number = Infinity): Promise<void> {
+  public set pc(address: number) {
     if (address < 0 || address > MEM_MAX - 2) {
-      throw new Error(`Attempt to execute at address ${address}`);
+      throw new Error(`Attempt to set PC to address ${address}`);
     }
 
     this._pc = address;
-    if (this._DEBUG) this._dump();
-
-    const self = this;
-    let c = 0;
-
-    setInterval(() => {
-      if (this._dt) {
-        this._dt--;
-      }
-      if (this._snd) {
-        if (!--this._snd) {
-          this._beeper.off();
-        }
-      }
-    }, 1000.0 / 60.0);
-
-    const doTick = async () => {
-      for (let i = 0; i < 3; i++) {
-        const isRunning = await self._tick();
-        if (!isRunning) {
-          return;
-        }
-        c++;
-      }
-      if (c < cycles) {
-        setTimeout(doTick, 1000.0 / 500.0);
-      }
-    };
-
-    setTimeout(doTick, 1000.0 / 500.0);
   }
 
-  private async _tick(): Promise<boolean> {
-    try {
-      const pc = this._pc;
-      await this._execute(this._fetch());
-      if (this._pc === pc) {
-        console.log(`HALT at $${this._h4(pc)}`);
-        return false;
+  public timerTick(): void {
+    if (this._dt) {
+      this._dt--;
+    }
+
+    if (this._snd) {
+      if (!--this._snd) {
+        this._beeper.off();
       }
-      if (this._DEBUG) this._dump();
+    }
+  }
+
+  public async step(): Promise<boolean> {
+    this._ticks++;
+    const pc = this._pc;
+
+    try {
+      await this._execute(this._fetch());
     } catch (error) {
       console.error(error);
-      console.log(`failed after ${this._tick} ticks`);
+      console.log(`failed after ${this._ticks} ticks`);
       this._dump();
+      return false;
+    }
+
+    if (this._DEBUG) {
+      this._dump();
+    }
+
+    if (this._pc === pc) {
+      console.log(`HALTED at $${this._h4(pc)}`);
       return false;
     }
 

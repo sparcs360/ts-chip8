@@ -1,6 +1,7 @@
 node_modules/
 .jest/
 dist/
+.tsc/
 
 .DS_Store
 
